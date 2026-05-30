@@ -58,8 +58,43 @@
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.35;
+      opacity: 0.55;
+      transition: opacity 0.6s ease;
     }
+    #particle-canvas.hidden { opacity: 0; }
+
+    /* ── Particle toggle button ── */
+    #particle-toggle {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 150;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--muted2);
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
+      user-select: none;
+    }
+    #particle-toggle:hover {
+      color: var(--accent);
+      border-color: rgba(56,189,248,0.4);
+      box-shadow: 0 4px 14px rgba(56,189,248,0.12);
+    }
+    #particle-toggle .pt-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      transition: background 0.3s;
+    }
+    #particle-toggle.off .pt-dot { background: var(--muted); }
 
     /* ── Nav ── */
     nav {
@@ -592,6 +627,7 @@
 <div id="progress-bar"></div>
 <canvas id="particle-canvas"></canvas>
 <div id="cursor-glow"></div>
+<button id="particle-toggle" title="Toggle particles"><span class="pt-dot"></span>particles</button>
 
 <!-- NAV -->
 <nav>
@@ -966,7 +1002,16 @@ document.addEventListener('mousemove', e => {
 (function () {
   const canvas = document.getElementById('particle-canvas');
   const ctx = canvas.getContext('2d');
-  let W, H, particles;
+  const btn = document.getElementById('particle-toggle');
+  let W, H, particles, mouse = { x: -9999, y: -9999 };
+  let particlesOn = true;
+
+  const COLORS = [
+    [56,189,248],   // accent blue
+    [192,132,252],  // purple
+    [125,211,252],  // light blue
+    [74,222,128],   // green
+  ];
 
   function resize() {
     W = canvas.width  = window.innerWidth;
@@ -974,54 +1019,94 @@ document.addEventListener('mousemove', e => {
   }
 
   function mkParticle() {
+    const c = COLORS[Math.floor(Math.random() * COLORS.length)];
     return {
       x: Math.random() * W,
       y: Math.random() * H,
-      r: Math.random() * 1.2 + 0.3,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      alpha: Math.random() * 0.5 + 0.1,
+      r: Math.random() * 1.6 + 0.4,
+      vx: (Math.random() - 0.5) * 0.45,
+      vy: (Math.random() - 0.5) * 0.45,
+      alpha: Math.random() * 0.55 + 0.15,
+      color: c,
     };
   }
 
   function init() {
     resize();
-    particles = Array.from({ length: 90 }, mkParticle);
+    const count = Math.min(Math.floor((W * H) / 9000), 160);
+    particles = Array.from({ length: count }, mkParticle);
   }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
-    // draw connections
-    for (let i = 0; i < particles.length; i++) {
-      for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 110) {
-          ctx.beginPath();
-          ctx.strokeStyle = `rgba(56,189,248,${0.07 * (1 - dist / 110)})`;
-          ctx.lineWidth = 0.5;
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.stroke();
+
+    if (particlesOn) {
+      // connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 130) {
+            const [r,g,b] = particles[i].color;
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${r},${g},${b},${0.09 * (1 - dist / 130)})`;
+            ctx.lineWidth = 0.6;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
         }
       }
+
+      // dots + movement + mouse repel
+      particles.forEach(p => {
+        const [r,g,b] = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},${p.alpha})`;
+        ctx.fill();
+
+        // mouse repel
+        const mdx = p.x - mouse.x;
+        const mdy = p.y - mouse.y;
+        const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+        if (mdist < 100) {
+          const force = (100 - mdist) / 100 * 0.8;
+          p.vx += (mdx / mdist) * force;
+          p.vy += (mdy / mdist) * force;
+        }
+
+        // dampen speed
+        p.vx *= 0.995;
+        p.vy *= 0.995;
+
+        // clamp max speed
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        if (speed > 1.8) { p.vx = (p.vx / speed) * 1.8; p.vy = (p.vy / speed) * 1.8; }
+
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
+      });
     }
-    // draw dots
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(56,189,248,${p.alpha})`;
-      ctx.fill();
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.x < 0 || p.x > W) p.vx *= -1;
-      if (p.y < 0 || p.y > H) p.vy *= -1;
-    });
+
     requestAnimationFrame(draw);
   }
 
-  window.addEventListener('resize', () => { resize(); });
+  // toggle
+  btn.addEventListener('click', () => {
+    particlesOn = !particlesOn;
+    canvas.classList.toggle('hidden', !particlesOn);
+    btn.classList.toggle('off', !particlesOn);
+    btn.querySelector('.pt-dot').style.background = particlesOn ? '' : '';
+    btn.childNodes[1].textContent = particlesOn ? 'particles' : 'particles';
+  });
+
+  document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  document.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+  window.addEventListener('resize', init);
   init();
   draw();
 })();

@@ -58,7 +58,7 @@
       inset: 0;
       pointer-events: none;
       z-index: 0;
-      opacity: 0.55;
+      opacity: 1;
       transition: opacity 0.6s ease;
     }
     #particle-canvas.hidden { opacity: 0; }
@@ -1023,10 +1023,10 @@ document.addEventListener('mousemove', e => {
     return {
       x: Math.random() * W,
       y: Math.random() * H,
-      r: Math.random() * 1.6 + 0.4,
+      r: Math.random() * 2.5 + 1.0,
       vx: (Math.random() - 0.5) * 0.45,
       vy: (Math.random() - 0.5) * 0.45,
-      alpha: Math.random() * 0.55 + 0.15,
+      alpha: Math.random() * 0.4 + 0.55,
       color: c,
     };
   }
@@ -1050,8 +1050,8 @@ document.addEventListener('mousemove', e => {
           if (dist < 130) {
             const [r,g,b] = particles[i].color;
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(${r},${g},${b},${0.09 * (1 - dist / 130)})`;
-            ctx.lineWidth = 0.6;
+            ctx.strokeStyle = `rgba(${r},${g},${b},${0.25 * (1 - dist / 130)})`;
+            ctx.lineWidth = 1.0;
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
             ctx.stroke();

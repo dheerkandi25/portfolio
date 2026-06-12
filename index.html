@@ -403,9 +403,10 @@
 
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(2, 1fr);
       gap: 1rem;
       margin-top: 2rem;
+      max-width: 480px;
     }
     .stat-card {
       background: var(--bg2);
@@ -711,7 +712,7 @@
     /* ── Responsive ── */
     @media (max-width: 700px) {
       .about-grid { grid-template-columns: 1fr; }
-      .stats-row { grid-template-columns: repeat(3,1fr); }
+      .stats-row { grid-template-columns: repeat(2,1fr); max-width: 100%; }
       .projects-grid { grid-template-columns: 1fr; }
       .nav-links { display: none; }
       .nav-resume-btn { font-size: 0.72rem; padding: 0.3rem 0.7rem; }
@@ -785,10 +786,6 @@
     <div class="stat-card reveal reveal-delay-2">
       <div class="stat-num" data-count="4.0" data-suffix="" data-decimal="1">0</div>
       <div class="stat-label">GPA @ Purdue</div>
-    </div>
-    <div class="stat-card reveal reveal-delay-3">
-      <div class="stat-num" data-count="98" data-suffix="%">0</div>
-      <div class="stat-label">AI module accuracy</div>
     </div>
   </div>
 </section>
